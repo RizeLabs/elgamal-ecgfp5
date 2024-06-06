@@ -1,0 +1,7 @@
+[package]
+name = "aze-enc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ecgfp5 = { path = "../elgamal" }
