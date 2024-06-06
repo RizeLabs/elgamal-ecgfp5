@@ -63,6 +63,10 @@ impl Scalar {
         0x53CACA12110CA256,
     ]);
 
+    pub fn from_val(val: [u64; 5]) -> Self {
+        Self(val)
+    }
+
     // raw addition (no reduction)
     fn add_inner(self, a: Self) -> Self {
         let mut r = Self::ZERO;
