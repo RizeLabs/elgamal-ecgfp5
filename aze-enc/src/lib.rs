@@ -1,6 +1,7 @@
 use ecgfp5::scalar::Scalar;
 use ecgfp5::curve::Point;
 
+#[derive(Debug)]
 pub struct CardCipher {
     ca: Point,
     cb: Point
