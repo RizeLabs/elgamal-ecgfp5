@@ -480,7 +480,7 @@ impl Point {
 // A curve point in affine (x,u) coordinates. This is used internally
 // to make "windows" that speed up point multiplications.
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct PointAffine {
+pub struct PointAffine {
     pub(crate) x: GFp5,
     pub(crate) u: GFp5,
 }
@@ -1018,6 +1018,8 @@ impl Mul<&Point> for &Scalar {
 
 #[cfg(test)]
 mod tests {
+    use core::intrinsics::log2f32;
+
     use super::{Point, PointAffine};
     use super::super::field::GFp5;
     use super::super::scalar::Scalar;
@@ -1043,7 +1045,7 @@ mod tests {
         let w5 = GFp5::from_u64_reduce(10523134687509281194, 11148711503117769087, 9056499921957594891, 13016664454465495026, 16494247923890248266);
         let w6 = GFp5::from_u64_reduce(12173306542237620, 6587231965341539782, 17027985748515888117, 17194831817613584995, 10056734072351459010);
         let w7 = GFp5::from_u64_reduce(9420857400785992333, 4695934009314206363, 14471922162341187302, 13395190104221781928, 16359223219913018041);
-
+        
         // Values that should not decode successfully.
         let bww: [GFp5; 6] = [
             GFp5::from_u64_reduce(13557832913345268708, 15669280705791538619, 8534654657267986396, 12533218303838131749, 5058070698878426028),
@@ -1151,7 +1153,7 @@ mod tests {
 
         // Test conversion to affine coordinates.
         for n in 1..(tab1.len() + 1) {
-            let mut tab2 = [PointAffine::NEUTRAL; 8];
+            let mut tab2: [PointAffine; 8] = [PointAffine::NEUTRAL; 8];
             Point::to_affine_array(&tab1[0..n], &mut tab2[0..n]);
             for i in 0..n {
                 assert!((tab1[i].Z * tab2[i].x).equals(tab1[i].X) != 0);

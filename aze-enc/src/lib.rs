@@ -1,5 +1,8 @@
 use ecgfp5::scalar::Scalar;
-use ecgfp5::curve::Point;
+use ecgfp5::field::GFp5;
+use ecgfp5::curve::{Point};
+use std::assert_eq;
+use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 #[derive(Clone, Debug)]
 pub struct CardCipher {
@@ -10,44 +13,42 @@ pub struct CardCipher {
 #[derive(Debug)]
 pub struct Card(Point);
 
-pub fn keygen(secret_key: [u64; 5]) -> Point {
-    let g = Point::GENERATOR;
-    let scalar = Scalar::from_val(secret_key);
-    let public_key = g * scalar;
-    public_key
+const RNDM_PT: GFp5 = GFp5::from_u64_reduce(12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567);
+
+pub fn keygen(secret_key: u32) -> Point {
+    let (g, c) = Point::decode(RNDM_PT);
+    // println!("Is valid {:?}", Point::validate(RNDM_PT));
+    g.mdouble(secret_key) // g*2^secret_key
 }
 
-pub fn mask(pub_agg: Point, m: Point, r: Scalar) -> CardCipher {
-    let g = Point::GENERATOR;
-    let ca = r * g;
-    let cb = m + (r * pub_agg);
+pub fn mask(pub_agg: Point, m: Point, r: u32) -> CardCipher {
+    let ca: Point = pub_agg.mdouble(r); // pub_agg * 2^r
+    let cb: Point = m + pub_agg.mdouble(r);
     CardCipher { ca, cb }
 }
 
-pub fn remask(pub_agg: Point, cipher: CardCipher, r: Scalar) -> CardCipher {
-    let g = Point::GENERATOR;
-    let new_ca = cipher.ca + (r * g);
-    let new_cb = cipher.cb + (r * pub_agg);
+pub fn remask(pub_agg: Point, cipher: CardCipher, r: u32) -> CardCipher {
+    let (g, c) = Point::decode(RNDM_PT);
+    let new_ca = cipher.ca + g.mdouble(r);
+    let new_cb = cipher.cb + pub_agg.mdouble(r);
     CardCipher { ca: new_ca, cb: new_cb }
 }
 
-pub fn inter_unmask(pub_agg: Point, cipher: CardCipher, r: Scalar) -> CardCipher {
-    let g = Point::GENERATOR;
-    let new_ca = cipher.ca - (r * g);
-    let new_cb = cipher.cb - (r * pub_agg);
+pub fn inter_unmask(pub_agg: Point, cipher: CardCipher, r: u32) -> CardCipher {
+    let (g, _) =  Point::decode(RNDM_PT);
+    let new_ca = cipher.ca - g.mdouble(r);
+    let new_cb = cipher.cb - pub_agg.mdouble(r);
     CardCipher { ca: new_ca, cb: new_cb }
 }
 
-pub fn final_unmask(pub_agg: Point, cipher: CardCipher, r: Scalar) -> Card {
-    let m = cipher.cb - (r * pub_agg);
+pub fn final_unmask(pub_agg: Point, cipher: CardCipher, r: u32) -> Card {
+    let m = cipher.cb - (pub_agg.mdouble(r));
     Card(m)
 }
 
 fn gen_card() -> Point {
-    let g = Point::GENERATOR;
-    let rndm: Scalar = Scalar::from_val([1,1,1,1,1]);
-    let card = g * rndm;
-    card 
+    let (g, c) = Point::decode(RNDM_PT);
+    g.mdouble(3)
 }
 
 #[cfg(test)]
@@ -56,16 +57,19 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let secret_key: [u64; 5] = [1, 2, 3, 4, 5];
+        let secret_key: u32 = 2;
         let public_key = keygen(secret_key);
+        // println!("Public key: {:?}", public_key);
         let card = gen_card();
         println!("Plaintext card: {:?}", card);
-        let masking_factor_1: Scalar = Scalar::from_val([2u64, 2u64, 2u64, 2u64 ,2u64]);
-        let masking_factor_2: Scalar = Scalar::from_val([3u64, 3u64, 3u64, 3u64 ,3u64]);
+        let masking_factor_1: u32 = 5;
+        let masking_factor_2: u32 = 6;
         let mask_card = mask(public_key, card, masking_factor_1);
-        let remask_card = remask(public_key, mask_card, masking_factor_2);
+        // println!("Masked card: {:?}", mask_card);
+        let remask_card = remask(public_key, mask_card.clone(), masking_factor_2);
         let inter_unmask_card = inter_unmask(public_key, remask_card, masking_factor_2);
         let final_unmask_card = final_unmask(public_key, inter_unmask_card, masking_factor_1);
-        println!("Card: {:?}", card);
+        println!("Final unmasked card: {:?}", final_unmask_card.0);
+        println!("Card: {:?}", final_unmask_card.0.equals(card));
     }
 }
