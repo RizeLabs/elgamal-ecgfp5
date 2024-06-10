@@ -7,6 +7,7 @@ pub struct CardCipher {
     cb: Point
 }
 
+#[derive(Debug)]
 pub struct Card(Point);
 
 pub fn keygen(secret_key: [u64; 5]) -> Point {
