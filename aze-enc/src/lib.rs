@@ -10,9 +10,6 @@ pub struct CardCipher {
     cb: Point
 }
 
-#[derive(Debug)]
-pub struct Card(Point);
-
 const RNDM_PT: GFp5 = GFp5::from_u64_reduce(12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567);
 
 pub fn keygen(secret_key: u32) -> Point {
@@ -41,9 +38,9 @@ pub fn inter_unmask(pub_agg: Point, cipher: CardCipher, r: u32) -> CardCipher {
     CardCipher { ca: new_ca, cb: new_cb }
 }
 
-pub fn final_unmask(pub_agg: Point, cipher: CardCipher, r: u32) -> Card {
+pub fn final_unmask(pub_agg: Point, cipher: CardCipher, r: u32) -> Point {
     let m = cipher.cb - (pub_agg.mdouble(r));
-    Card(m)
+    m
 }
 
 fn gen_card() -> Point {
@@ -61,7 +58,7 @@ mod tests {
         let public_key = keygen(secret_key);
         // println!("Public key: {:?}", public_key);
         let card = gen_card();
-        println!("Plaintext card: {:?}", card);
+        println!("Plaintext card: {:?}\n", card);
         let masking_factor_1: u32 = 5;
         let masking_factor_2: u32 = 6;
         let mask_card = mask(public_key, card, masking_factor_1);
@@ -69,7 +66,7 @@ mod tests {
         let remask_card = remask(public_key, mask_card.clone(), masking_factor_2);
         let inter_unmask_card = inter_unmask(public_key, remask_card, masking_factor_2);
         let final_unmask_card = final_unmask(public_key, inter_unmask_card, masking_factor_1);
-        println!("Final unmasked card: {:?}", final_unmask_card.0);
-        println!("Card: {:?}", final_unmask_card.0.equals(card));
+        println!("Final unmasked card: {:?}\n", final_unmask_card);
+        println!("Card: {:?}", final_unmask_card.equals(card));
     }
 }
