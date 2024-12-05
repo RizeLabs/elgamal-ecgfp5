@@ -3,6 +3,7 @@ use ecgfp5::field::GFp5;
 use ecgfp5::curve::{Point};
 use std::assert_eq;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Debug)]
 pub struct CardCipher {
@@ -45,6 +46,7 @@ pub fn final_unmask(pub_agg: Point, cipher: CardCipher, r: u32) -> Point {
 
 fn gen_card() -> Point {
     let (g, c) = Point::decode(RNDM_PT);
+    println!("point {:?}", g);
     g.mdouble(3)
 }
 
@@ -64,9 +66,15 @@ mod tests {
         let mask_card = mask(public_key, card, masking_factor_1);
         // println!("Masked card: {:?}", mask_card);
         let remask_card = remask(public_key, mask_card.clone(), masking_factor_2);
-        let inter_unmask_card = inter_unmask(public_key, remask_card, masking_factor_2);
-        let final_unmask_card = final_unmask(public_key, inter_unmask_card, masking_factor_1);
-        println!("Final unmasked card: {:?}\n", final_unmask_card);
-        println!("Card: {:?}", final_unmask_card.equals(card));
+        let start_time = Instant::now();
+        let mut computation = 0;
+        while Instant::now().duration_since(start_time) < Duration::new(10, 0) {
+            let inter_unmask_card = inter_unmask(public_key, remask_card.clone(), masking_factor_2);
+            computation += 1;
+        }
+        println!("Total Computations in 10 secs: {:?}", computation);
+        // let final_unmask_card = final_unmask(public_key, inter_unmask_card, masking_factor_1);
+        // println!("Final unmasked card: {:?}\n", final_unmask_card);
+        // println!("Card: {:?}", final_unmask_card.equals(card));
     }
 }
